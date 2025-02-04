@@ -1,6 +1,31 @@
-# grep
-Grep in Go. From Go bootcamp
+# Grep in Go
+A simple grep implementation in Go. Inspired by Go Bootcamp.
 
-## Assumption
-1. The files in the chile directories are considered when a dirctory is given as input.
-2. All the files in the given directory are text files.
+## Build
+To build the application, run the following command:
+```sh
+go build -o grep main.go
+```
+
+## Usage
+### Search within a single file:
+```sh
+grep <pattern> <file_path>
+```
+Example:
+```sh
+grep "error" logs.txt
+```
+
+### Search within all files in a directory (including subdirectories):
+```sh
+grep <pattern> <directory_path>
+```
+Example:
+```sh
+grep "error" ./logs
+```
+
+## Assumptions
+1. If a directory is provided as input, all files within its subdirectories are also considered.
+2. All files in the given directory are assumed to be text files.
