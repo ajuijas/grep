@@ -1,19 +1,57 @@
+/* trunk-ignore-all(gofmt) */
 /*
 Copyright © 2025 NAME HERE ijas.ahmd.ap@gmail.com
 */
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
+	"regexp"
+	"sync"
 
 	"github.com/spf13/cobra"
 )
 
 var searchString string
+const maxLineSize = 64 * 1024
 
-func readFiles(target string, lines chan string){
-	fmt.Print("To be implimented")
+
+func readFiles(filePath string, wg *sync.WaitGroup){
+
+	defer wg.Done()
+
+	var lines []string
+
+	file, _ := os.Open(filePath)
+	defer file.Close()
+
+	re, err := regexp.Compile(searchString)
+	if err!=nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(file)
+
+	buf := make([]byte, maxLineSize)
+	scanner.Buffer(buf, maxLineSize)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if re.MatchString(line){
+			lines = append(lines, line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, line := range lines {
+		fmt.Println(filePath, line)
+	}
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -37,8 +75,26 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		searchString = args[0]
-		lines := make(chan string)
-		readFiles(args[1], lines)
+		dir := args[1]
+
+		var wg sync.WaitGroup
+
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Println("Error accessing path:", err)
+			return err
+		}
+		if !info.IsDir() {
+			wg.Add(1)
+			go readFiles(path, &wg)
+		}
+		return nil
+	})
+	wg.Wait()
+
+	if err != nil {
+		fmt.Println("Error walking through the directory:", err)
+	}
 	},
 }
 

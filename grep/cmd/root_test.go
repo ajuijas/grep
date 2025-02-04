@@ -86,7 +86,14 @@ func Test_rootCmd(t *testing.T) {
 	tests := []struct {
 		stringPattern, fileContent, expected string
 	} {
-		{"abcd", "abcdefg\nhijklmn", "abcdefg"},
+		// I'm using the <filename> placeholder to replace the filename while asserting the result.
+		{"abcd", "abcdefg\nhijklmn", "<filename> abcdefg"},
+		{"aba", "skfjhksh ks sknabafksd lksdjf aabalsj \nnskfnl adbld\nlsjdfl ksjfn kdsjf\nablisjdijalsba", "<filename> skfjhksh ks sknabafksd lksdjf aabalsj"},
+		{"a", "bc\nlsjfoj\nlsdjfljs skdnfks ksdjf", ""},
+		{"a", "a", "<filename> a"},
+		{"a","a\na\na", "<filename> a\n<filename> a\n<filename> a\n"},
+		{"a","a\na\na\nb", "<filename> a\n<filename> a\n<filename> a\n"},
+
 	}
 
 	for _, test := range tests{
@@ -107,10 +114,11 @@ func Test_rootCmd(t *testing.T) {
 		rootCmd.SetArgs([]string{test.stringPattern, tmpFile.Name()})
 		rootCmd.Execute()
 
-		out := restoreStd()
+		out := strings.TrimSpace(restoreStd())
+		expected := strings.TrimSpace(strings.ReplaceAll(test.expected, "<filename>", tmpFile.Name()))
 
-		if out != test.expected {
-			t.Errorf("Expected: %v Got: %v", test.expected, out)
+		if out != expected {
+			t.Errorf("Expected: <<%v>> Got: <<%v>>", expected, out)
 		}
 	}
 }
