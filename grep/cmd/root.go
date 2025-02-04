@@ -17,6 +17,7 @@ import (
 
 var searchString string
 const maxLineSize = 64 * 1024
+var outputFile string
 
 
 func readFiles(filePath string, wg *sync.WaitGroup){
@@ -48,8 +49,15 @@ func readFiles(filePath string, wg *sync.WaitGroup){
 		log.Fatal(err)
 	}
 
-	for _, line := range lines {
-		fmt.Println(filePath, line)
+	if outputFile != "" {
+		outFile, _ := os.Create(outputFile)
+		for _, line := range lines {
+			outFile.WriteString(line + "\n")
+			}
+	} else {
+		for _, line := range lines {
+			fmt.Println(filePath, line)
+			}
 	}
 }
 
@@ -116,4 +124,5 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "file path to save output")
 }

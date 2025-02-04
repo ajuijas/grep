@@ -3,6 +3,8 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -35,22 +37,31 @@ func redirectStd() (func() string) {
 	}
 }
 
+func createTempFile(filePath, fileName, fileContent string) (*os.File) {
+
+	if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	tmpFile, err := os.CreateTemp(filePath, fileName)
+	if err!= nil{
+		panic(err)
+	}
+	_, err = tmpFile.WriteString(fileContent)
+	if err!=nil {
+		panic(err)
+	}
+	return tmpFile
+}
+
 func Test_ReadFile(t *testing.T) {
 
 	// Redirect stdout and stderr to have a clean test output.
 	restoreStd := redirectStd()
+	defer restoreStd()
 
-	tmpFile, err := os.CreateTemp(".", "foo*.txt")
-	if err != nil {
-		t.Fatalf("Failed to create temp file for tests")
-	}
+	tmpFile := createTempFile(".", "foo*.txt", "abcd\nabcdefg\n")
 	defer os.Remove(tmpFile.Name())
-	fileContent := "abcd\nabcdefg\n"
-	_, err = tmpFile.Write([]byte(fileContent))
-	if err != nil {
-		t.Fatalf("Error writing to temp file:")
-		return
-	}
 
 	tests := []struct {
 		fileName, expected string
@@ -78,7 +89,6 @@ func Test_ReadFile(t *testing.T) {
 			t.Errorf("Expected: %v Got: %v", expected, outString)
 		}
 	}
-	restoreStd()
 }
 
 func Test_rootCmd(t *testing.T) {
@@ -101,18 +111,15 @@ func Test_rootCmd(t *testing.T) {
 		// Redirect stdout and stderr to have a clean test output.
 		restoreStd := redirectStd()
 
-		tmpFile, err := os.CreateTemp(".", "temp_*.txt")
-		if err != nil {
-			t.Fatalf("Error createing temp file")
-		}
+		tmpFile := createTempFile(".", "temp_*.txt", test.fileContent)
+
 		defer os.Remove(tmpFile.Name())
-		_, err = tmpFile.WriteString(test.fileContent)
-		if err!=nil {
-			t.Fatalf("Error while writing to temp file")
-		}
 
 		rootCmd.SetArgs([]string{test.stringPattern, tmpFile.Name()})
-		rootCmd.Execute()
+		err := rootCmd.Execute()
+		if err!= nil{
+			t.Fatalf("Error while Execute rootCmd error: %v", err)
+		}
 
 		out := strings.TrimSpace(restoreStd())
 		expected := strings.TrimSpace(strings.ReplaceAll(test.expected, "<filename>", tmpFile.Name()))
@@ -120,5 +127,66 @@ func Test_rootCmd(t *testing.T) {
 		if out != expected {
 			t.Errorf("Expected: <<%v>> Got: <<%v>>", expected, out)
 		}
+	}
+}
+
+func Test_read_from_directory(t *testing.T){
+	restoreStd := redirectStd()
+
+	tempFoleder := "temp/"
+
+	defer os.RemoveAll(tempFoleder)
+
+	file1 := createTempFile(tempFoleder + "folder1", "file1.txt", "a")
+	file2 := createTempFile(tempFoleder + "folder1", "file2.txt", "a")
+	file3 := createTempFile(tempFoleder + "folder2", "file1.txt", "a")
+
+	rootCmd.SetArgs([]string{"a", tempFoleder})
+	err := rootCmd.Execute()
+	if err!= nil{
+		t.Fatalf("Error while Execute rootCmd error: %v", err)
+	}
+
+	expected := file1.Name() + " a\n" + file2.Name() + " a\n" + file3.Name() + " a"
+
+	outLines := strings.Split(strings.TrimSpace(restoreStd()), "\n")
+	expectedLines := strings.Split(strings.TrimSpace(expected), "\n")
+
+	sort.Strings(outLines)
+	sort.Strings(expectedLines)
+
+	if !reflect.DeepEqual(outLines, expectedLines) {
+		// I'm not considering the order here.
+		t.Errorf("Expected: <<%v>> Got: <<%v>>", expectedLines, outLines)
+}
+}
+
+func Test_redirect_to_out_file(t *testing.T){
+
+	restoreStd := redirectStd()
+	tmpFile := createTempFile(".", "foo*.txt", "aaa\nbnd\naa")
+	expected := "aaa\naa"
+
+	resultFileName := "result.txt"
+
+	defer os.Remove(tmpFile.Name())
+	defer os.Remove(resultFileName)
+
+
+	rootCmd.SetArgs([]string{"a", tmpFile.Name(), "-o", resultFileName})
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	out := restoreStd()
+	if out != "" {
+		t.Errorf("Expected: <<>> Got <<%v>>", out)
+	}
+
+	data, _ := os.ReadFile(resultFileName)
+	got := strings.TrimSpace(string(data))
+	if got != expected {
+		t.Errorf("Expected: <<%v>> Got: <<%v>>", expected, string(data))
 	}
 }
