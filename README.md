@@ -8,7 +8,7 @@ go build -o grep main.go
 ```
 
 ## Usage
-### Search within a single file:
+### Search within a single file
 ```sh
 grep <pattern> <file_path>
 ```
@@ -17,7 +17,7 @@ Example:
 grep "error" logs.txt
 ```
 
-### Search within all files in a directory (including subdirectories):
+### Search within all files in a directory (including subdirectories)
 ```sh
 grep <pattern> <directory_path>
 ```

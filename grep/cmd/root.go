@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
-
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +55,7 @@ func readFiles(filePath string, wg *sync.WaitGroup){
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "grep",
+	Use:   "grep <string pattern> <file name or directory>",
 	Short: "",
 	Long: ``,
 	// Uncomment the following line if your bare application
@@ -118,5 +117,3 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
-
-
