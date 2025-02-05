@@ -74,7 +74,7 @@ func Test_ReadFile(t *testing.T) {
 
 	for _, test := range tests {
 
-		rootCmd.SetArgs([]string{"abcd", test.fileName})
+		rootCmd.SetArgs([]string{"not_a_matching_pattern", test.fileName})
 		err := rootCmd.Execute()
 		var outString string
 		if err != nil {
@@ -161,7 +161,7 @@ func Test_read_from_directory(t *testing.T){
 }
 }
 
-func Test_redirect_to_out_file(t *testing.T){
+func Test_redirect_output_to_a_file(t *testing.T){
 
 	restoreStd := redirectStd()
 	tmpFile := createTempFile(".", "foo*.txt", "aaa\nbnd\naa")

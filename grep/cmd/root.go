@@ -29,7 +29,7 @@ func getTextScanner(filepath string) (*bufio.Scanner) {
 		scanner = bufio.NewScanner(source)
 		buf := make([]byte, maxLineSize)
 		scanner.Buffer(buf, maxLineSize)
-	} else {
+	} else {  // Filename empty is redirected to stdin
 		source = os.Stdin
 		scanner = bufio.NewScanner(source)
 	}
