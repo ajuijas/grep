@@ -161,6 +161,51 @@ func Test_read_from_directory(t *testing.T){
 }
 }
 
+
+func Test_search_from_standard_input(t *testing.T){
+
+	tests := []struct {
+		pattern, input, expaected string
+	}{
+		{"abc", "abc", "abc"}, 
+		{"abc", "abc\ndefg\nabcd\n", "abc\n abcd"}, 
+	}
+
+	for _, test := range tests{
+
+		restoreStd := redirectStd()
+
+
+		oldStdin := os.Stdin
+		r, w, _ := os.Pipe()
+		os.Stdin = r
+
+		defer func() {
+			os.Stdin = oldStdin
+			r.Close()
+			w.Close()
+		}()
+
+		// Writing to the stdin pipe
+		go func() {
+			defer w.Close()
+			_, _ = w.Write([]byte(test.input))
+		}()
+
+		rootCmd.SetArgs([]string{test.pattern})
+		err := rootCmd.Execute()
+		if err != nil {
+			t.Fatalf("Failed to execute the rootCmd: %v", err)
+		}
+
+		out := strings.TrimSpace(restoreStd())
+		expected := strings.TrimSpace(test.expaected)
+		if out != expected {
+			t.Errorf("Expected: <<%v>> Got: <<%v>>", expected, out)
+		}
+	}
+}
+
 func Test_redirect_output_to_a_file(t *testing.T){
 
 	restoreStd := redirectStd()

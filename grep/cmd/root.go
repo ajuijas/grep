@@ -21,7 +21,7 @@ var searchString string
 const maxLineSize = 64 * 1024
 var outputFile string
 
-func getTextScanner(filepath string) (*bufio.Scanner) {
+var getTextScanner = func (filepath string) (*bufio.Scanner) {
 	var source io.Reader
 	var scanner *bufio.Scanner
 	if filepath != "" {
