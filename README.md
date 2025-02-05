@@ -1,5 +1,5 @@
 # Grep in Go
-A simple grep implementation in Go. Inspired by Go Bootcamp.
+A simple grep implementation in Go. Inspired by Go Bootcamp here https://one2n.io/go-bootcamp/go-projects/grep-in-go
 
 ## Build
 To build the application, run the following command:
