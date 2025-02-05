@@ -7,11 +7,13 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sync"
+
 	"github.com/spf13/cobra"
 )
 
@@ -19,25 +21,35 @@ var searchString string
 const maxLineSize = 64 * 1024
 var outputFile string
 
+func getTextScanner(filepath string) (*bufio.Scanner) {
+	var source io.Reader
+	var scanner *bufio.Scanner
+	if filepath != "" {
+		source, _ = os.Open(filepath)
+		scanner = bufio.NewScanner(source)
+		buf := make([]byte, maxLineSize)
+		scanner.Buffer(buf, maxLineSize)
+	} else {  // Filename empty is redirected to stdin
+		source = os.Stdin
+		scanner = bufio.NewScanner(source)
+	}
+	return scanner
+}
+
 
 func readFiles(filePath string, wg *sync.WaitGroup){
 
 	defer wg.Done()
 
 	var lines []string
-
-	file, _ := os.Open(filePath)
-	defer file.Close()
+	// defer source.Close()
 
 	re, err := regexp.Compile(searchString)
 	if err!=nil {
 		log.Fatal(err)
 	}
 
-	scanner := bufio.NewScanner(file)
-
-	buf := make([]byte, maxLineSize)
-	scanner.Buffer(buf, maxLineSize)
+	scanner := getTextScanner(filePath)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -69,9 +81,12 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 2 {
+		if len(args) < 1 {
 			return fmt.Errorf("please provide search string and file/directory name")
 		}
+		if len(args) < 2 {
+			return nil
+		} 
 		if _, err := os.Stat(args[1]); os.IsNotExist(err) {
 			return fmt.Errorf("%v: open: No such file or directory", args[1])
 		}
@@ -82,21 +97,28 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		searchString = args[0]
-		dir := args[1]
-
 		var wg sync.WaitGroup
+		var err error
+		if len(args) < 2 {
 
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Println("Error accessing path:", err)
-			return err
-		}
-		if !info.IsDir() {
 			wg.Add(1)
-			go readFiles(path, &wg)
-		}
-		return nil
-	})
+			go readFiles("", &wg)  // The empty file name
+
+		} else {
+
+			dir := args[1]
+
+			err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				fmt.Println("Error accessing path:", err)
+				return err
+			}
+			if !info.IsDir() {
+				wg.Add(1)
+				readFiles(path, &wg)
+			}
+			return nil
+		})}
 	wg.Wait()
 
 	if err != nil {
